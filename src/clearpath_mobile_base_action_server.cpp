@@ -80,19 +80,19 @@ namespace clearpath
             const rclcpp_action::GoalUUID &uuid,
             std::shared_ptr<const JointTrajectory::Goal> goal)
         {
-            RCLCPP_INFO(this->get_logger(), "Goal request accepted with %ld points!", goal->trajectory.points.size());
-
             if(!goal->trajectory.points.empty()){
                 const auto num_joints = goal->trajectory.points[0].positions.size();
                 const auto expected_num_joints = this->get_parameter("num_joints").as_int();
 
-                 RCLCPP_INFO(this->get_logger(), "There are %ld joint data, expected %ld", num_joints, expected_num_joints);
+                 RCLCPP_ERROR(this->get_logger(), "There are %ld joint data, expected %ld", num_joints, expected_num_joints);
 
 
                  if(num_joints != expected_num_joints){
                     return rclcpp_action::GoalResponse::REJECT;
                  }
             }
+            RCLCPP_INFO(this->get_logger(), "Goal request accepted with %ld points!", goal->trajectory.points.size());
+
             (void)uuid;
             return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
         }
