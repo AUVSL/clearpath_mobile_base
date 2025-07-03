@@ -35,6 +35,7 @@ namespace clearpath
         {
             this->declare_parameter("Kp_linear", 1.0);
             this->declare_parameter("Kp_angular", 1.0);
+            this->declare_parameter("num_joints", 9);
 
             using namespace std::placeholders;
 
@@ -82,7 +83,15 @@ namespace clearpath
             RCLCPP_INFO(this->get_logger(), "Goal request accepted with %ld points!", goal->trajectory.points.size());
 
             if(!goal->trajectory.points.empty()){
-                 RCLCPP_INFO(this->get_logger(), "There are %ld joint data", goal->trajectory.points[0].positions.size());
+                const auto num_joints = goal->trajectory.points[0].positions.size();
+                const auto expected_num_joints = this->get_parameter("num_joints").as_int();
+
+                 RCLCPP_INFO(this->get_logger(), "There are %ld joint data, expected %ld", num_joints, expected_num_joints);
+
+
+                 if(num_joints != expected_num_joints){
+                    return rclcpp_action::GoalResponse::REJECT;
+                 }
             }
             (void)uuid;
             return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
@@ -109,6 +118,7 @@ namespace clearpath
 
         void execute(const std::shared_ptr<GoalHandleJointTrajectory> goal_handle)
         {
+            // TODO Send the rest of the joints as an action command for the robot arm to 
             RCLCPP_INFO(this->get_logger(), "Executing goal");
 
             const auto goal = goal_handle->get_goal();
@@ -128,10 +138,24 @@ namespace clearpath
 
             RCLCPP_INFO(this->get_logger(), "The number of points is %ld", goal->trajectory.points.size());
 
+            std::ostringstream ss;
+            ss << "Trajectory has " << points.size() << " points:\n";
+
+            for (size_t i = 0; i < points.size(); ++i) {
+            ss << "  Point " << i << ": [";
+            for (size_t j = 0; j < points[i].positions.size(); ++j) {
+                ss << points[i].positions[j];
+                if (j + 1 < points[i].positions.size()) {
+                ss << ", ";
+                }
+            }
+            ss << "]\n";
+            }
+
+            RCLCPP_INFO(this->get_logger(), "%s", ss.str().c_str());
+
             for (const auto &point : goal->trajectory.points)
             {
-                const size_t num_joints = point.positions.size();
-
                 // If the process is terminated
                 if (!rclcpp::ok())
                 {
@@ -158,9 +182,9 @@ namespace clearpath
                     }
                 }
 
-                const double x_d = point.positions[num_joints- 3];
-                const double y_d = point.positions[num_joints - 2];
-                const double yaw_d = point.positions[num_joints - 1];
+                const double x_d = point.positions[0];
+                const double y_d = point.positions[1];
+                const double yaw_d = point.positions[2];
 
                 try
                 {
