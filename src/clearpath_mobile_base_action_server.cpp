@@ -9,6 +9,9 @@
 
 #include "realtime_tools/realtime_publisher.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/quaternion.hpp"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "geometry_msgs/msg/transform_stamped.hpp"
 
 #include "tf2/exceptions.h"
 #include "tf2_ros/transform_listener.h"
@@ -77,6 +80,10 @@ namespace clearpath
             std::shared_ptr<const JointTrajectory::Goal> goal)
         {
             RCLCPP_INFO(this->get_logger(), "Goal request accepted with %ld points!", goal->trajectory.points.size());
+
+            if(!goal->trajectory.points.empty()){
+                 RCLCPP_INFO(this->get_logger(), "There are %ld joint data", goal->trajectory.points[0].positions.size());
+            }
             (void)uuid;
             return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
         }
@@ -123,6 +130,8 @@ namespace clearpath
 
             for (const auto &point : goal->trajectory.points)
             {
+                const size_t num_joints = point.positions.size();
+
                 // If the process is terminated
                 if (!rclcpp::ok())
                 {
@@ -149,9 +158,9 @@ namespace clearpath
                     }
                 }
 
-                const double x_d = point.positions[0];
-                const double y_d = point.positions[1];
-                const double yaw_d = point.positions[2];
+                const double x_d = point.positions[num_joints- 3];
+                const double y_d = point.positions[num_joints - 2];
+                const double yaw_d = point.positions[num_joints - 1];
 
                 try
                 {
